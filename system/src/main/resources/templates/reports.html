@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Reports & Receipts</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f4f4f4; min-height: 100vh; }
+
+        .navbar {
+            background: #4f46e5; color: white;
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 18px; font-weight: 500; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); border: none;
+            color: white; padding: 0.4rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+            text-decoration: none;
+        }
+
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* Summary cards */
+        .summary-cards {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .card {
+            background: white; border-radius: 10px;
+            padding: 1.2rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .card-label { font-size: 12px; color: #6b7280; margin-bottom: 0.3rem; }
+        .card-value { font-size: 24px; font-weight: 500; color: #111827; }
+        .card-value.green  { color: #16a34a; }
+        .card-value.blue   { color: #2563eb; }
+        .card-value.amber  { color: #d97706; }
+        .card-value.red    { color: #dc2626; }
+        .card-sub {
+            font-size: 12px; color: #6b7280;
+            margin-top: 0.4rem;
+        }
+
+        /* Filter bar */
+        .filter-bar {
+            background: white; border-radius: 10px;
+            padding: 1rem 1.2rem; margin-bottom: 1.2rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            display: flex; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        .filter-bar label { font-size: 13px; color: #374151; }
+        .filter-bar input[type="date"] {
+            padding: 0.5rem 0.8rem; border: 1px solid #d1d5db;
+            border-radius: 6px; font-size: 13px;
+        }
+        .filter-btn {
+            padding: 0.5rem 1rem; background: #4f46e5;
+            color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 13px;
+        }
+        .filter-btn:hover { background: #4338ca; }
+        .reset-btn {
+            padding: 0.5rem 1rem; background: white;
+            color: #374151; border: 1px solid #d1d5db;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+
+        /* Table */
+        table {
+            width: 100%; background: white;
+            border-radius: 10px; border-collapse: collapse;
+            overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        th {
+            background: #f9fafb; padding: 0.8rem 1rem;
+            text-align: left; font-size: 13px;
+            color: #6b7280; font-weight: 500;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        td {
+            padding: 0.85rem 1rem; font-size: 14px;
+            border-bottom: 1px solid #f3f4f6; color: #111827;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .badge {
+            padding: 0.2rem 0.6rem; border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+        }
+        .badge-completed { background: #dcfce7; color: #166534; }
+        .badge-pending   { background: #fef9c3; color: #854d0e; }
+        .badge-cancelled { background: #fff1f2; color: #dc2626; }
+        .badge-paid      { background: #dcfce7; color: #166534; }
+        .badge-unpaid    { background: #fff1f2; color: #dc2626; }
+
+        .receipt-btn {
+            background: #eff6ff; color: #1d4ed8;
+            border: 1px solid #bfdbfe; padding: 0.3rem 0.7rem;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+            text-decoration: none; display: inline-block;
+        }
+        .receipt-btn:hover { background: #dbeafe; }
+
+        .empty-state {
+            text-align: center; padding: 3rem;
+            color: #9ca3af; font-size: 14px;
+        }
+
+        /* Table footer total */
+        .table-footer {
+            background: white; border-radius: 0 0 10px 10px;
+            padding: 0.8rem 1rem;
+            display: flex; justify-content: flex-end;
+            font-size: 14px; font-weight: 500;
+            border-top: 2px solid #e5e7eb;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+
+        #message {
+            padding: 0.7rem 1rem; border-radius: 6px;
+            margin-bottom: 1rem; font-size: 13px; display: none;
+        }
+        .msg-success { background: #dcfce7; color: #166534; display: block !important; }
+        .msg-error   { background: #fff1f2; color: #dc2626; display: block !important; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>Reports & Receipts</h1>
+    <a href="/dashboard" class="back-btn">← Back to Menu</a>
+</div>
+
+<div class="container">
+
+    <div id="message"></div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-label">Total Sales</div>
+            <div class="card-value green" id="totalSales">₱0.00</div>
+            <div class="card-sub" id="completedCount">0 completed orders</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Total Orders</div>
+            <div class="card-value blue" id="totalOrders">0</div>
+            <div class="card-sub" id="pendingCount">0 pending</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Unpaid Orders</div>
+            <div class="card-value red" id="unpaidCount">0</div>
+            <div class="card-sub" id="cancelledCount">0 cancelled</div>
+        </div>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="filter-bar">
+        <label>From:</label>
+        <input type="date" id="fromDate"/>
+        <label>To:</label>
+        <input type="date" id="toDate"/>
+        <button class="filter-btn" onclick="applyFilter()">Apply Filter</button>
+        <button class="reset-btn" onclick="resetFilter()">Reset</button>
+    </div>
+
+    <!-- Orders Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Order No.</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Discount</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Receipt</th>
+            </tr>
+        </thead>
+        <tbody id="reportTableBody">
+            <tr><td colspan="10" class="empty-state">Loading...</td></tr>
+        </tbody>
+    </table>
+    <div class="table-footer">
+        Filtered Total: &nbsp;
+        <span id="filteredTotal" style="color:#16a34a">₱0.00</span>
+    </div>
+
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login';
+
+    window.onload = async () => {
+        await loadSummary();
+        await loadOrders();
+    };
+
+    async function loadSummary() {
+        const res = await fetch('/api/reports/summary');
+        const s = await res.json();
+        document.getElementById('totalSales').textContent =
+            '₱' + s.totalSales.toFixed(2);
+        document.getElementById('totalOrders').textContent = s.totalOrders;
+        document.getElementById('unpaidCount').textContent = s.unpaid;
+        document.getElementById('completedCount').textContent =
+            s.completed + ' completed orders';
+        document.getElementById('pendingCount').textContent =
+            s.pending + ' pending';
+        document.getElementById('cancelledCount').textContent =
+            s.cancelled + ' cancelled';
+    }
+
+    async function loadOrders(from = '', to = '') {
+        let url = '/api/reports/orders';
+        if (from && to) url += `?from=${from}&to=${to}`;
+        const res = await fetch(url);
+        const orders = await res.json();
+        renderTable(orders);
+    }
+
+    function renderTable(orders) {
+        const tbody = document.getElementById('reportTableBody');
+        if (orders.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="10" class="empty-state">No orders found.</td></tr>';
+            document.getElementById('filteredTotal').textContent = '₱0.00';
+            return;
+        }
+
+        // Compute filtered total (completed only)
+        const filteredTotal = orders
+            .filter(o => o.status === 'COMPLETED')
+            .reduce((s, o) => s + o.finalAmount, 0);
+        document.getElementById('filteredTotal').textContent =
+            '₱' + filteredTotal.toFixed(2);
+
+        tbody.innerHTML = orders.map((o, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><strong>${o.orderNumber}</strong></td>
+                <td>${o.customerName}</td>
+                <td>${o.orderItems ? o.orderItems.length : 0} item(s)</td>
+                <td>₱${o.discount.toFixed(2)}</td>
+                <td>₱${o.finalAmount.toFixed(2)}</td>
+                <td>
+                    <span class="badge badge-${o.paymentStatus.toLowerCase()}">
+                        ${o.paymentStatus}
+                    </span>
+                    <br/><small style="color:#6b7280">${o.paymentMethod}</small>
+                </td>
+                <td>
+                    <span class="badge badge-${o.status.toLowerCase()}">
+                        ${o.status}
+                    </span>
+                </td>
+                <td style="font-size:12px;color:#6b7280">
+                    ${new Date(o.orderDate).toLocaleString()}
+                </td>
+                <td>
+                    <a class="receipt-btn"
+                       href="/receipt/${o.id}" target="_blank">
+                       Print
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function applyFilter() {
+        const from = document.getElementById('fromDate').value;
+        const to   = document.getElementById('toDate').value;
+        if (!from || !to) {
+            showMessage('Please select both from and to dates.', 'error');
+            return;
+        }
+        loadOrders(from, to);
+    }
+
+    function resetFilter() {
+        document.getElementById('fromDate').value = '';
+        document.getElementById('toDate').value = '';
+        loadOrders();
+    }
+
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className = type === 'success' ? 'msg-success' : 'msg-error';
+        setTimeout(() => { msg.className = ''; msg.textContent = ''; }, 3000);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordering System – Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a5f3fc 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.5;
+            z-index: 0;
+        }
+        .blob-1 {
+            width: 400px; height: 400px;
+            background: #6366f1;
+            top: -100px; left: -100px;
+        }
+        .blob-2 {
+            width: 350px; height: 350px;
+            background: #06b6d4;
+            bottom: -80px; right: -80px;
+        }
+        .blob-3 {
+            width: 250px; height: 250px;
+            background: #818cf8;
+            bottom: 100px; left: 50px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            width: 380px;
+            max-width: 95%;
+            box-shadow: 0 20px 60px rgba(99,102,241,0.15);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Logo */
+        .logo-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.2rem;
+        }
+        .logo {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 8px 20px rgba(99,102,241,0.3);
+        }
+
+        /* Title */
+        .card-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .card-title h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 4px;
+        }
+        .card-title p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+        }
+        .tab-btn {
+            flex: 1; padding: 0.5rem;
+            border: none; background: transparent;
+            border-radius: 7px; cursor: pointer;
+            font-size: 14px; font-weight: 500;
+            color: #6b7280; transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #4f46e5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* Forms */
+        .form-panel { display: none; }
+        .form-panel.active { display: block; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block; font-size: 12px;
+            color: #374151; margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%; padding: 0.7rem 1rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px; font-size: 14px;
+            background: white; outline: none;
+            transition: border-color 0.2s;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+
+        /* Password strength */
+        .strength-bar {
+            height: 4px; border-radius: 2px;
+            background: #e5e7eb; margin-top: 6px;
+        }
+        .strength-fill {
+            height: 100%; width: 0%;
+            border-radius: 2px; transition: all 0.3s;
+        }
+        .strength-text {
+            font-size: 11px; color: #6b7280; margin-top: 3px;
+        }
+
+        /* Hint texts */
+        .hint {
+            font-size: 11px; margin-top: 3px;
+        }
+        .hint.ok  { color: #16a34a; }
+        .hint.err { color: #dc2626; }
+
+        /* Submit button */
+        .submit-btn {
+            width: 100%; padding: 0.75rem;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            color: white; border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 600;
+            cursor: pointer; margin-top: 0.5rem;
+            transition: opacity 0.2s, transform 0.1s;
+            letter-spacing: 0.3px;
+        }
+        .submit-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+        .submit-btn:active { transform: translateY(0); }
+
+        /* Message */
+        #login-message, #reg-message {
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 0.8rem;
+            display: none;
+            text-align: center;
+        }
+        .msg-success {
+            background: #dcfce7; color: #166534; display: block !important;
+        }
+        .msg-error {
+            background: #fff1f2; color: #dc2626; display: block !important;
+        }
+
+        /* Footer links */
+        .card-footer {
+            display: flex; justify-content: center;
+            margin-top: 1.2rem; font-size: 12px; color: #6b7280;
+        }
+        .card-footer a {
+            color: #6366f1; text-decoration: none; font-weight: 500;
+        }
+        .card-footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<!-- Background blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- Card -->
+<div class="card">
+
+    <!-- Logo -->
+    <div class="logo-wrap">
+        <div class="logo">🛒</div>
+    </div>
+
+    <!-- Title -->
+    <div class="card-title">
+        <h2 id="card-heading">Welcome back!</h2>
+        <p id="card-sub">User Login</p>
+    </div>
+
+    <!-- ===== LOGIN FORM ===== -->
+    <div class="form-panel active" id="panel-login">
+
+        <div id="login-message"></div>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="login-username" placeholder="Enter your username"/>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password"
+                   placeholder="Enter your password"
+                   onkeydown="if(event.key==='Enter') doLogin()"/>
+        </div>
+
+        <button class="submit-btn" onclick="doLogin()">Login</button>
+
+        <div class="card-footer">
+            <span>Don't have an account? &nbsp;
+                <a href="#" onclick="switchTab('register')">Register here</a>
+            </span>
+        </div>
+    </div>
+
+    <!-- ===== REGISTER FORM ===== -->
+    <div class="form-panel" id="panel-register">
+
+        <div id="reg-message"></div>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="reg-username"
+                   placeholder="Min. 3 characters"
+                   oninput="checkUsername()"/>
+            <div class="hint" id="username-hint"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="reg-password"
+                   placeholder="Min. 6 characters"
+                   oninput="checkStrength()"/>
+            <div class="strength-bar">
+                <div class="strength-fill" id="strength-fill"></div>
+            </div>
+            <div class="strength-text" id="strength-text"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" id="reg-confirm"
+                   placeholder="Re-enter password"
+                   oninput="checkMatch()"/>
+            <div class="hint" id="match-hint"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Role</label>
+            <select id="reg-role">
+                <option value="ADMIN">Admin</option>
+                <option value="CASHIER">Cashier</option>
+                <option value="STAFF" selected>Staff</option>
+            </select>
+        </div>
+
+        <button class="submit-btn" onclick="doRegister()">
+            Create Account
+        </button>
+
+        <div class="card-footer">
+            <span>Already have an account? &nbsp;
+                <a href="#" onclick="switchTab('login')">Login here</a>
+            </span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ===== TAB SWITCHING =====
+    function switchTab(tab) {
+        document.getElementById('panel-login')
+            .classList.toggle('active', tab === 'login');
+        document.getElementById('panel-register')
+            .classList.toggle('active', tab === 'register');
+
+        if (tab === 'login') {
+            document.getElementById('card-heading').textContent = 'Welcome back!';
+            document.getElementById('card-sub').textContent = 'User Login';
+        } else {
+            document.getElementById('card-heading').textContent = 'Create account';
+            document.getElementById('card-sub').textContent = 'Register new user';
+        }
+    }
+
+    // ===== LOGIN =====
+    async function doLogin() {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const msg      = document.getElementById('login-message');
+
+        if (!username || !password) {
+            msg.textContent = 'Please enter username and password.';
+            msg.className = 'msg-error'; return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                localStorage.setItem('token', data.token);
+                window.location.href = '/dashboard';
+            } else {
+                msg.textContent = 'Invalid username or password.';
+                msg.className = 'msg-error';
+            }
+        } catch(err) {
+            msg.textContent = 'Connection error. Please try again.';
+            msg.className = 'msg-error';
+        }
+    }
+
+    // ===== REGISTER =====
+    function checkUsername() {
+        const val  = document.getElementById('reg-username').value;
+        const hint = document.getElementById('username-hint');
+        if (val.length === 0) { hint.textContent = ''; return; }
+        if (val.length < 3) {
+            hint.textContent = 'At least 3 characters required.';
+            hint.className = 'hint err';
+        } else {
+            hint.textContent = 'Looks good!';
+            hint.className = 'hint ok';
+        }
+    }
+
+    function checkStrength() {
+        const pwd  = document.getElementById('reg-password').value;
+        const fill = document.getElementById('strength-fill');
+        const text = document.getElementById('strength-text');
+        let strength = 0;
+        if (pwd.length >= 6)  strength++;
+        if (pwd.length >= 10) strength++;
+        if (/[A-Z]/.test(pwd)) strength++;
+        if (/[0-9]/.test(pwd)) strength++;
+        if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+        const levels = [
+            { w: '20%', c: '#ef4444', t: 'Very weak' },
+            { w: '40%', c: '#f97316', t: 'Weak' },
+            { w: '60%', c: '#eab308', t: 'Fair' },
+            { w: '80%', c: '#22c55e', t: 'Strong' },
+            { w: '100%', c: '#16a34a', t: 'Very strong' },
+        ];
+        const level = levels[Math.max(0, strength - 1)];
+        fill.style.width      = pwd.length === 0 ? '0%' : level.w;
+        fill.style.background = level.c;
+        text.textContent      = pwd.length === 0 ? '' : level.t;
+        text.style.color      = level.c;
+    }
+
+    function checkMatch() {
+        const pwd  = document.getElementById('reg-password').value;
+        const conf = document.getElementById('reg-confirm').value;
+        const hint = document.getElementById('match-hint');
+        if (conf === '') { hint.textContent = ''; return; }
+        if (pwd === conf) {
+            hint.textContent = 'Passwords match!';
+            hint.className = 'hint ok';
+        } else {
+            hint.textContent = 'Passwords do not match.';
+            hint.className = 'hint err';
+        }
+    }
+
+    async function doRegister() {
+        const username = document.getElementById('reg-username').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const confirm  = document.getElementById('reg-confirm').value;
+        const role     = document.getElementById('reg-role').value;
+        const msg      = document.getElementById('reg-message');
+
+        if (!username || username.length < 3) {
+            msg.textContent = 'Username must be at least 3 characters.';
+            msg.className = 'msg-error'; return;
+        }
+        if (password.length < 6) {
+            msg.textContent = 'Password must be at least 6 characters.';
+            msg.className = 'msg-error'; return;
+        }
+        if (password !== confirm) {
+            msg.textContent = 'Passwords do not match.';
+            msg.className = 'msg-error'; return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, role })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                msg.textContent = 'Account created successfully! You can now login.';
+                msg.className = 'msg-success';
+                document.getElementById('reg-username').value = '';
+                document.getElementById('reg-password').value = '';
+                document.getElementById('reg-confirm').value  = '';
+                document.getElementById('reg-role').value     = 'STAFF';
+                document.getElementById('strength-fill').style.width = '0%';
+                document.getElementById('strength-text').textContent = '';
+                document.getElementById('username-hint').textContent = '';
+                document.getElementById('match-hint').textContent    = '';
+                setTimeout(() => switchTab('login'), 2000);
+            } else {
+                msg.textContent = data.message || 'Registration failed.';
+                msg.className = 'msg-error';
+            }
+        } catch(err) {
+            msg.textContent = 'Connection error. Please try again.';
+            msg.className = 'msg-error';
+        }
+    }
+</script>
+
+</body>
+</html>

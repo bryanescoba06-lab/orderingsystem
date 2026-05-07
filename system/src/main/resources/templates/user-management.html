@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Management</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f4f4f4; min-height: 100vh; }
+
+        .navbar {
+            background: #4f46e5; color: white;
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 18px; font-weight: 500; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); border: none;
+            color: white; padding: 0.4rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+            text-decoration: none;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* Layout */
+        .layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 1.2rem;
+            align-items: start;
+        }
+
+        /* Register Panel */
+        .panel {
+            background: white; border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .panel h3 {
+            font-size: 15px; font-weight: 500;
+            color: #111827; margin-bottom: 1.2rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block; font-size: 13px;
+            color: #374151; margin-bottom: 0.3rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%; padding: 0.65rem 0.8rem;
+            border: 1px solid #d1d5db; border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none; border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.08);
+        }
+
+        /* Password strength */
+        .strength-bar {
+            height: 4px; border-radius: 2px;
+            background: #e5e7eb; margin-top: 6px;
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%; width: 0%;
+            border-radius: 2px; transition: width 0.3s, background 0.3s;
+        }
+        .strength-text {
+            font-size: 11px; color: #6b7280; margin-top: 3px;
+        }
+
+        .register-btn {
+            width: 100%; padding: 0.7rem;
+            background: #4f46e5; color: white;
+            border: none; border-radius: 6px;
+            font-size: 14px; cursor: pointer; margin-top: 0.5rem;
+        }
+        .register-btn:hover { background: #4338ca; }
+
+        /* Users Table */
+        table {
+            width: 100%; background: white;
+            border-radius: 10px; border-collapse: collapse;
+            overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        th {
+            background: #f9fafb; padding: 0.8rem 1rem;
+            text-align: left; font-size: 13px;
+            color: #6b7280; font-weight: 500;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        td {
+            padding: 0.85rem 1rem; font-size: 14px;
+            border-bottom: 1px solid #f3f4f6; color: #111827;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .badge {
+            padding: 0.2rem 0.6rem; border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+        }
+        .badge-admin   { background: #ede9fe; color: #5b21b6; }
+        .badge-cashier { background: #dbeafe; color: #1e40af; }
+        .badge-staff   { background: #f3f4f6; color: #374151; }
+
+        .del-btn {
+            background: #fff1f2; color: #dc2626;
+            border: 1px solid #fecdd3; padding: 0.3rem 0.7rem;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+        }
+        .role-btn {
+            background: #eff6ff; color: #1d4ed8;
+            border: 1px solid #bfdbfe; padding: 0.3rem 0.7rem;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+            margin-right: 4px;
+        }
+        .pwd-btn {
+            background: #fefce8; color: #854d0e;
+            border: 1px solid #fef08a; padding: 0.3rem 0.7rem;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+            margin-right: 4px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4);
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white; border-radius: 12px;
+            padding: 2rem; width: 380px; max-width: 95%;
+        }
+        .modal h3 { font-size: 16px; margin-bottom: 1.2rem; color: #111827; }
+        .modal-actions {
+            display: flex; justify-content: flex-end;
+            gap: 0.6rem; margin-top: 1.2rem;
+        }
+        .cancel-btn {
+            padding: 0.55rem 1rem; border: 1px solid #d1d5db;
+            border-radius: 6px; background: white;
+            cursor: pointer; font-size: 14px;
+        }
+        .save-btn {
+            padding: 0.55rem 1.2rem; background: #4f46e5;
+            color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 14px;
+        }
+        .save-btn:hover { background: #4338ca; }
+
+        #message {
+            padding: 0.7rem 1rem; border-radius: 6px;
+            margin-bottom: 1rem; font-size: 13px; display: none;
+        }
+        .msg-success { background: #dcfce7; color: #166534; display: block !important; }
+        .msg-error   { background: #fff1f2; color: #dc2626; display: block !important; }
+
+        .empty-state {
+            text-align: center; padding: 3rem;
+            color: #9ca3af; font-size: 14px;
+        }
+
+        .user-count {
+            font-size: 13px; color: #6b7280;
+            margin-bottom: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>User Management</h1>
+    <a href="/dashboard" class="back-btn">← Back to Menu</a>
+</div>
+
+<div class="container">
+
+    <div id="message"></div>
+
+    <div class="layout">
+
+        <!-- Register Panel -->
+        <div class="panel">
+            <h3>Register New User</h3>
+
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="regUsername"
+                       placeholder="e.g. juan123"
+                       oninput="checkUsername()"/>
+                <div id="usernameHint"
+                     style="font-size:11px;margin-top:3px;color:#6b7280"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="regPassword"
+                       placeholder="Min. 6 characters"
+                       oninput="checkStrength()"/>
+                <div class="strength-bar">
+                    <div class="strength-fill" id="strengthFill"></div>
+                </div>
+                <div class="strength-text" id="strengthText"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="regConfirm"
+                       placeholder="Re-enter password"
+                       oninput="checkMatch()"/>
+                <div id="matchHint"
+                     style="font-size:11px;margin-top:3px"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Role</label>
+                <select id="regRole">
+                    <option value="ADMIN">Admin</option>
+                    <option value="CASHIER">Cashier</option>
+                    <option value="STAFF">Staff</option>
+                </select>
+            </div>
+
+            <button class="register-btn" onclick="registerUser()">
+                Register User
+            </button>
+        </div>
+
+        <!-- Users Table -->
+        <div>
+            <div class="user-count" id="userCount">Loading users...</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            Loading...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Change Role Modal -->
+<div class="modal-overlay" id="roleModal">
+    <div class="modal">
+        <h3>Change Role</h3>
+        <input type="hidden" id="roleUserId"/>
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="roleUsername" disabled
+                   style="background:#f9fafb;color:#6b7280"/>
+        </div>
+        <div class="form-group">
+            <label>New Role</label>
+            <select id="newRole">
+                <option value="ADMIN">Admin</option>
+                <option value="CASHIER">Cashier</option>
+                <option value="STAFF">Staff</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="cancel-btn"
+                    onclick="closeModal('roleModal')">Cancel</button>
+            <button class="save-btn" onclick="saveRole()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="pwdModal">
+    <div class="modal">
+        <h3>Change Password</h3>
+        <input type="hidden" id="pwdUserId"/>
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="pwdUsername" disabled
+                   style="background:#f9fafb;color:#6b7280"/>
+        </div>
+        <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="newPassword"
+                   placeholder="Min. 6 characters"/>
+        </div>
+        <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" id="confirmNewPassword"
+                   placeholder="Re-enter new password"/>
+        </div>
+        <div class="modal-actions">
+            <button class="cancel-btn"
+                    onclick="closeModal('pwdModal')">Cancel</button>
+            <button class="save-btn"
+                    onclick="savePassword()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login';
+
+    window.onload = () => loadUsers();
+
+    async function loadUsers() {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        renderTable(users);
+        document.getElementById('userCount').textContent =
+            users.length + ' registered user(s)';
+    }
+
+    function renderTable(users) {
+        const tbody = document.getElementById('userTableBody');
+        if (users.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="4" class="empty-state">No users found.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = users.map((u, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td>
+                    <strong>${u.username}</strong>
+                </td>
+                <td>
+                    <span class="badge badge-${u.role.toLowerCase()}">
+                        ${u.role}
+                    </span>
+                </td>
+                <td>
+                    <button class="role-btn"
+                        onclick="openRoleModal(${u.id}, '${u.username}',
+                        '${u.role}')">Role</button>
+                    <button class="pwd-btn"
+                        onclick="openPwdModal(${u.id},
+                        '${u.username}')">Password</button>
+                    <button class="del-btn"
+                        onclick="deleteUser(${u.id},
+                        '${u.username}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // ===== REGISTER =====
+    function checkUsername() {
+        const val = document.getElementById('regUsername').value;
+        const hint = document.getElementById('usernameHint');
+        if (val.length < 3) {
+            hint.textContent = 'Username must be at least 3 characters.';
+            hint.style.color = '#dc2626';
+        } else {
+            hint.textContent = 'Looks good!';
+            hint.style.color = '#16a34a';
+        }
+    }
+
+    function checkStrength() {
+        const pwd = document.getElementById('regPassword').value;
+        const fill = document.getElementById('strengthFill');
+        const text = document.getElementById('strengthText');
+        let strength = 0;
+        if (pwd.length >= 6) strength++;
+        if (pwd.length >= 10) strength++;
+        if (/[A-Z]/.test(pwd)) strength++;
+        if (/[0-9]/.test(pwd)) strength++;
+        if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+
+        const levels = [
+            { w: '20%', c: '#ef4444', t: 'Very weak' },
+            { w: '40%', c: '#f97316', t: 'Weak' },
+            { w: '60%', c: '#eab308', t: 'Fair' },
+            { w: '80%', c: '#22c55e', t: 'Strong' },
+            { w: '100%', c: '#16a34a', t: 'Very strong' },
+        ];
+        const level = levels[Math.max(0, strength - 1)] || levels[0];
+        fill.style.width = pwd.length === 0 ? '0%' : level.w;
+        fill.style.background = level.c;
+        text.textContent = pwd.length === 0 ? '' : level.t;
+        text.style.color = level.c;
+    }
+
+    function checkMatch() {
+        const pwd  = document.getElementById('regPassword').value;
+        const conf = document.getElementById('regConfirm').value;
+        const hint = document.getElementById('matchHint');
+        if (conf === '') { hint.textContent = ''; return; }
+        if (pwd === conf) {
+            hint.textContent = 'Passwords match!';
+            hint.style.color = '#16a34a';
+        } else {
+            hint.textContent = 'Passwords do not match.';
+            hint.style.color = '#dc2626';
+        }
+    }
+
+    async function registerUser() {
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirm  = document.getElementById('regConfirm').value;
+        const role     = document.getElementById('regRole').value;
+
+        if (!username || username.length < 3) {
+            showMessage('Username must be at least 3 characters.', 'error');
+            return;
+        }
+        if (password.length < 6) {
+            showMessage('Password must be at least 6 characters.', 'error');
+            return;
+        }
+        if (password !== confirm) {
+            showMessage('Passwords do not match.', 'error');
+            return;
+        }
+
+        const res = await fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, role })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showMessage(data.message, 'success');
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regConfirm').value = '';
+            document.getElementById('regRole').value = 'STAFF';
+            document.getElementById('strengthFill').style.width = '0%';
+            document.getElementById('strengthText').textContent = '';
+            document.getElementById('usernameHint').textContent = '';
+            document.getElementById('matchHint').textContent = '';
+            loadUsers();
+        } else {
+            showMessage(data.message, 'error');
+        }
+    }
+
+    // ===== CHANGE ROLE =====
+    function openRoleModal(id, username, role) {
+        document.getElementById('roleUserId').value = id;
+        document.getElementById('roleUsername').value = username;
+        document.getElementById('newRole').value = role;
+        document.getElementById('roleModal').classList.add('active');
+    }
+
+    async function saveRole() {
+        const id   = document.getElementById('roleUserId').value;
+        const role = document.getElementById('newRole').value;
+        const res  = await fetch('/api/users/' + id + '/role', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeModal('roleModal');
+            loadUsers();
+            showMessage(data.message, 'success');
+        } else {
+            showMessage(data.message, 'error');
+        }
+    }
+
+    // ===== CHANGE PASSWORD =====
+    function openPwdModal(id, username) {
+        document.getElementById('pwdUserId').value = id;
+        document.getElementById('pwdUsername').value = username;
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmNewPassword').value = '';
+        document.getElementById('pwdModal').classList.add('active');
+    }
+
+    async function savePassword() {
+        const id       = document.getElementById('pwdUserId').value;
+        const password = document.getElementById('newPassword').value;
+        const confirm  = document.getElementById('confirmNewPassword').value;
+
+        if (password.length < 6) {
+            showMessage('Password must be at least 6 characters.', 'error');
+            return;
+        }
+        if (password !== confirm) {
+            showMessage('Passwords do not match.', 'error');
+            return;
+        }
+
+        const res = await fetch('/api/users/' + id + '/password', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            closeModal('pwdModal');
+            showMessage(data.message, 'success');
+        } else {
+            showMessage(data.message, 'error');
+        }
+    }
+
+    // ===== DELETE =====
+    async function deleteUser(id, username) {
+        if (!confirm('Delete user "' + username + '"? This cannot be undone.'))
+            return;
+        const res = await fetch('/api/users/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            loadUsers();
+            showMessage('User "' + username + '" deleted.', 'success');
+        } else {
+            showMessage('Failed to delete user.', 'error');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className = type === 'success' ? 'msg-success' : 'msg-error';
+        setTimeout(() => { msg.className = ''; msg.textContent = ''; }, 3000);
+    }
+</script>
+
+</body>
+</html>

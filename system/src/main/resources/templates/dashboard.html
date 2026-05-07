@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard – Ordering System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, sans-serif; margin: 0; padding: 0; }
+        body { background: #f0f2f5; min-height: 100vh; }
+
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, #1d3557, #457b9d);
+            color: white; padding: 16px 28px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .navbar h1 { font-size: 18px; font-weight: 600; }
+        .nav-right {
+            display: flex; align-items: center; gap: 12px; font-size: 13px;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.2); border: none;
+            color: white; padding: 0.4rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.35); }
+
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1.2rem; }
+
+        /* Welcome banner */
+        .welcome-banner {
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            border-radius: 14px; padding: 1.5rem 2rem;
+            color: white; margin-bottom: 1.5rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .welcome-banner h2 { font-size: 20px; margin-bottom: 4px; }
+        .welcome-banner p  { font-size: 13px; opacity: 0.85; }
+        .welcome-date { font-size: 13px; opacity: 0.85; text-align: right; }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white; border-radius: 12px;
+            padding: 1.2rem 1.4rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid transparent;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-card.blue   { border-color: #3b82f6; }
+        .stat-card.green  { border-color: #22c55e; }
+        .stat-card.amber  { border-color: #f59e0b; }
+        .stat-card.purple { border-color: #8b5cf6; }
+        .stat-card.coral  { border-color: #ef4444; }
+        .stat-card.teal   { border-color: #14b8a6; }
+        .stat-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+        .stat-value { font-size: 26px; font-weight: 600; color: #111827; }
+        .stat-sub   { font-size: 12px; color: #6b7280; margin-top: 4px; }
+        .stat-value.blue   { color: #3b82f6; }
+        .stat-value.green  { color: #22c55e; }
+        .stat-value.amber  { color: #f59e0b; }
+        .stat-value.purple { color: #8b5cf6; }
+        .stat-value.coral  { color: #ef4444; }
+        .stat-value.teal   { color: #14b8a6; }
+
+        /* Charts row */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .chart-card {
+            background: white; border-radius: 12px;
+            padding: 1.2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .chart-card h3 {
+            font-size: 14px; font-weight: 600;
+            color: #111827; margin-bottom: 0.8rem;
+            display: flex; justify-content: space-between;
+            align-items: center;
+        }
+        .chart-tabs {
+            display: flex; gap: 6px;
+        }
+        .chart-tab {
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; cursor: pointer; border: none;
+            background: #f3f4f6; color: #6b7280;
+        }
+        .chart-tab.active {
+            background: #4f46e5; color: white;
+        }
+        canvas { max-height: 220px; }
+
+        /* Bottom row */
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+
+        /* Top items */
+        .top-item-row {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13px;
+        }
+        .top-item-row:last-child { border-bottom: none; }
+        .top-item-bar-wrap {
+            flex: 1; margin: 0 10px;
+            background: #f3f4f6; border-radius: 4px; height: 6px;
+        }
+        .top-item-bar {
+            height: 100%; border-radius: 4px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+        }
+        .top-item-qty {
+            font-size: 12px; color: #6b7280; min-width: 30px;
+            text-align: right;
+        }
+
+        /* Recent orders */
+        .recent-order-row {
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 0.6rem 0;
+            border-bottom: 1px solid #f3f4f6; font-size: 13px;
+        }
+        .recent-order-row:last-child { border-bottom: none; }
+        .order-info { flex: 1; }
+        .order-num  { font-weight: 600; color: #111827; font-size: 12px; }
+        .order-cust { color: #6b7280; font-size: 11px; margin-top: 1px; }
+        .order-amount { font-weight: 600; color: #111827; font-size: 13px; }
+
+        .badge {
+            padding: 0.15rem 0.5rem; border-radius: 20px;
+            font-size: 11px; font-weight: 500;
+        }
+        .badge-completed { background: #dcfce7; color: #166534; }
+        .badge-pending   { background: #fef9c3; color: #854d0e; }
+        .badge-cancelled { background: #fff1f2; color: #dc2626; }
+        .badge-confirmed { background: #dbeafe; color: #1e40af; }
+
+        /* Module buttons */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .menu-card {
+            background: white; border-radius: 12px;
+            padding: 1.2rem 1rem; text-decoration: none;
+            color: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex; align-items: center; gap: 0.8rem;
+        }
+        .menu-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .menu-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center;
+            justify-content: center; font-size: 22px; flex-shrink: 0;
+        }
+        .menu-card h3 { font-size: 13px; font-weight: 600; color: #111827; }
+        .menu-card p  { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+        .section-title {
+            font-size: 14px; font-weight: 600;
+            color: #374151; margin-bottom: 0.8rem;
+        }
+
+        .footer {
+            text-align: center; padding: 1.5rem;
+            font-size: 12px; color: #9ca3af;
+        }
+
+        .low-stock-badge {
+            background: #fff1f2; color: #dc2626;
+            font-size: 11px; padding: 2px 6px;
+            border-radius: 10px; font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+    <h1>Ordering System</h1>
+    <div class="nav-right">
+        <span id="nav-user"></span>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <div>
+            <h2 id="welcome-text">Welcome back!</h2>
+            <p>Here's what's happening with your business today.</p>
+        </div>
+        <div class="welcome-date" id="current-date"></div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="stat-card green">
+            <div class="stat-label">Total Sales</div>
+            <div class="stat-value green" id="totalSales">₱0.00</div>
+            <div class="stat-sub" id="completedSub">0 completed orders</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-value blue" id="totalOrders">0</div>
+            <div class="stat-sub" id="pendingSub">0 pending</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="stat-label">Total Items</div>
+            <div class="stat-value amber" id="totalItems">0</div>
+            <div class="stat-sub" id="lowStockSub">0 low stock</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-label">Total Staff</div>
+            <div class="stat-value purple" id="totalStaff">0</div>
+            <div class="stat-sub" id="activeStaffSub">0 active</div>
+        </div>
+    </div>
+
+    <!-- Module Buttons -->
+    <div class="section-title">Modules</div>
+    <div class="menu-grid">
+        <a class="menu-card" href="/item-management" id="btn-item">
+            <div class="menu-icon" style="background:#e0f2fe">📦</div>
+            <div>
+                <h3>Item Management</h3>
+                <p>Add, view, update, delete</p>
+            </div>
+        </a>
+        <a class="menu-card" href="/labor-management" id="btn-labor">
+            <div class="menu-icon" style="background:#fce7f3">👥</div>
+            <div>
+                <h3>Labor Management</h3>
+                <p>Staff, roles, schedules</p>
+            </div>
+        </a>
+        <a class="menu-card" href="/ordering-system" id="btn-order">
+            <div class="menu-icon" style="background:#fef9c3">🛒</div>
+            <div>
+                <h3>Order Management</h3>
+                <p>Orders, cart, pricing</p>
+            </div>
+        </a>
+        <a class="menu-card" href="/reports" id="btn-reports">
+            <div class="menu-icon" style="background:#e0e7ff">📊</div>
+            <div>
+                <h3>Reports & Receipts</h3>
+                <p>Sales reports, receipts</p>
+            </div>
+        </a>
+        <a class="menu-card" href="/user-management" id="btn-users">
+            <div class="menu-icon" style="background:#dcfce7">👤</div>
+            <div>
+                <h3>User Management</h3>
+                <p>Register, manage users</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+
+        <!-- Sales Chart -->
+        <div class="chart-card">
+            <h3>
+                Sales Overview
+                <div class="chart-tabs">
+                    <button class="chart-tab active"
+                            onclick="switchSalesChart('daily', this)">
+                        Daily
+                    </button>
+                    <button class="chart-tab"
+                            onclick="switchSalesChart('monthly', this)">
+                        Monthly
+                    </button>
+                </div>
+            </h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <!-- Order Status Chart -->
+        <div class="chart-card">
+            <h3>Order Status Breakdown</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="bottom-row">
+
+        <!-- Top Selling Items -->
+        <div class="chart-card">
+            <h3>Top Selling Items</h3>
+            <div id="topItemsList">
+                <div style="color:#9ca3af;font-size:13px;
+                            text-align:center;padding:2rem">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="chart-card" style="grid-column: span 2">
+            <h3>Recent Orders</h3>
+            <div id="recentOrdersList">
+                <div style="color:#9ca3af;font-size:13px;
+                            text-align:center;padding:2rem">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">Developed by Nelson Nolon &copy; 2026</div>
+</div>
+
+<script>
+    // ===== AUTH =====
+    function parseJwt(token) {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch(e) { return null; }
+    }
+    function getCurrentUser() {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        return parseJwt(token);
+    }
+    function getUserRole() {
+        const user = getCurrentUser();
+        if (!user) return null;
+        let role = user.role || '';
+        if (Array.isArray(role)) role = role[0];
+        return role.toString().replace('ROLE_', '').toUpperCase().trim();
+    }
+    function doLogout() {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    }
+
+    // ===== CHECK LOGIN =====
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login';
+
+    const user = getCurrentUser();
+    const role = getUserRole();
+
+    if (user) {
+        document.getElementById('nav-user').textContent =
+            user.sub + ' (' + role + ')';
+        document.getElementById('welcome-text').textContent =
+            'Welcome back, ' + user.sub + '!';
+    }
+
+    // Current date
+    document.getElementById('current-date').textContent =
+        new Date().toLocaleDateString('en-PH', {
+            weekday: 'long', year: 'numeric',
+            month: 'long', day: 'numeric'
+        });
+
+    // ===== ROLE BASED HIDE =====
+    window.onload = async function() {
+        if (role === 'STAFF') {
+            document.getElementById('btn-item').style.display    = 'none';
+            document.getElementById('btn-labor').style.display   = 'none';
+            document.getElementById('btn-reports').style.display = 'none';
+            document.getElementById('btn-users').style.display   = 'none';
+        }
+        if (role === 'CASHIER') {
+            document.getElementById('btn-labor').style.display   = 'none';
+            document.getElementById('btn-users').style.display   = 'none';
+        }
+        await loadSummary();
+        await loadDailySales();
+        await loadStatusChart();
+        await loadTopItems();
+        await loadRecentOrders();
+    };
+
+    // ===== SUMMARY =====
+    async function loadSummary() {
+        const res = await fetch('/api/dashboard/summary');
+        const s   = await res.json();
+        document.getElementById('totalSales').textContent =
+            '₱' + parseFloat(s.totalSales).toFixed(2);
+        document.getElementById('totalOrders').textContent  = s.totalOrders;
+        document.getElementById('totalItems').textContent   = s.totalItems;
+        document.getElementById('totalStaff').textContent   = s.totalStaff;
+        document.getElementById('completedSub').textContent =
+            s.completedOrders + ' completed orders';
+        document.getElementById('pendingSub').textContent   =
+            s.pendingOrders + ' pending';
+        document.getElementById('lowStockSub').innerHTML    =
+            s.lowStockItems > 0
+            ? '<span class="low-stock-badge">⚠ ' +
+              s.lowStockItems + ' low stock</span>'
+            : 'All items sufficient';
+        document.getElementById('activeStaffSub').textContent =
+            s.activeStaff + ' active';
+    }
+
+    // ===== SALES CHART =====
+    let salesChart     = null;
+    let dailyData      = null;
+    let monthlyData    = null;
+    let currentPeriod  = 'daily';
+
+    async function loadDailySales() {
+        const res  = await fetch('/api/dashboard/sales/daily');
+        dailyData  = await res.json();
+        const res2 = await fetch('/api/dashboard/sales/monthly');
+        monthlyData = await res2.json();
+        renderSalesChart(dailyData, 'bar');
+    }
+
+    function renderSalesChart(data, type) {
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        if (salesChart) salesChart.destroy();
+        salesChart = new Chart(ctx, {
+            type: type,
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Sales (₱)',
+                    data: data.data,
+                    backgroundColor: type === 'bar'
+                        ? 'rgba(79,70,229,0.7)'
+                        : 'rgba(79,70,229,0.1)',
+                    borderColor: '#4f46e5',
+                    borderWidth: 2,
+                    borderRadius: type === 'bar' ? 6 : 0,
+                    fill: type === 'line',
+                    tension: 0.4,
+                    pointBackgroundColor: '#4f46e5',
+                    pointRadius: type === 'line' ? 4 : 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx =>
+                                '₱' + ctx.parsed.y.toFixed(2)
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: v => '₱' + v
+                        },
+                        grid: { color: '#f3f4f6' }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    let salesType = 'bar';
+
+    function switchSalesChart(period, btn) {
+        document.querySelectorAll('.chart-tab').forEach(b =>
+            b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPeriod = period;
+        const data = period === 'daily' ? dailyData : monthlyData;
+        renderSalesChart(data, salesType);
+    }
+
+    // ===== STATUS DOUGHNUT CHART =====
+    async function loadStatusChart() {
+        const res  = await fetch('/api/dashboard/order-status');
+        const data = await res.json();
+        const ctx  = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.data,
+                    backgroundColor: [
+                        '#22c55e', '#f59e0b', '#ef4444', '#3b82f6'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, padding: 10 }
+                    }
+                }
+            }
+        });
+    }
+
+    // ===== TOP ITEMS =====
+    async function loadTopItems() {
+        const res   = await fetch('/api/dashboard/top-items');
+        const items = await res.json();
+        const div   = document.getElementById('topItemsList');
+
+        if (items.length === 0) {
+            div.innerHTML =
+                '<div style="color:#9ca3af;font-size:13px;' +
+                'text-align:center;padding:2rem">No data yet.</div>';
+            return;
+        }
+
+        const max = Math.max(...items.map(i => i.quantity));
+        div.innerHTML = items.map((item, idx) => `
+            <div class="top-item-row">
+                <span style="font-size:12px;color:#6b7280;
+                             min-width:18px">${idx + 1}</span>
+                <span style="font-size:13px;color:#111827;
+                             min-width:90px">${item.name}</span>
+                <div class="top-item-bar-wrap">
+                    <div class="top-item-bar"
+                         style="width:${(item.quantity/max*100).toFixed(0)}%">
+                    </div>
+                </div>
+                <span class="top-item-qty">${item.quantity} sold</span>
+            </div>
+        `).join('');
+    }
+
+    // ===== RECENT ORDERS =====
+    async function loadRecentOrders() {
+        const res    = await fetch('/api/dashboard/recent-orders');
+        const orders = await res.json();
+        const div    = document.getElementById('recentOrdersList');
+
+        if (orders.length === 0) {
+            div.innerHTML =
+                '<div style="color:#9ca3af;font-size:13px;' +
+                'text-align:center;padding:2rem">No orders yet.</div>';
+            return;
+        }
+
+        div.innerHTML = orders.map(o => `
+            <div class="recent-order-row">
+                <div class="order-info">
+                    <div class="order-num">${o.orderNumber}</div>
+                    <div class="order-cust">${o.customerName}</div>
+                </div>
+                <span class="badge badge-${o.status.toLowerCase()}"
+                      style="margin:0 10px">
+                    ${o.status}
+                </span>
+                <span class="badge badge-${o.paymentStatus.toLowerCase()}"
+                      style="margin-right:10px">
+                    ${o.paymentStatus}
+                </span>
+                <span class="order-amount">
+                    ₱${parseFloat(o.finalAmount).toFixed(2)}
+                </span>
+            </div>
+        `).join('');
+    }
+</script>
+
+</body>
+</html>

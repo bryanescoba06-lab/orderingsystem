@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordering System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f4f4f4; min-height: 100vh; }
+
+        .navbar {
+            background: #4f46e5; color: white;
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 18px; font-weight: 500; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); border: none;
+            color: white; padding: 0.4rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+            text-decoration: none;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.15); border: none;
+            color: white; padding: 0.4rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        .summary-cards {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .card {
+            background: white; border-radius: 10px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .card-label { font-size: 12px; color: #6b7280; margin-bottom: 0.3rem; }
+        .card-value { font-size: 22px; font-weight: 500; color: #111827; }
+        .card-value.blue  { color: #2563eb; }
+        .card-value.green { color: #16a34a; }
+        .card-value.amber { color: #d97706; }
+        .card-value.red   { color: #dc2626; }
+        .top-bar {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 1.2rem;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        .top-bar-left { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .search-input {
+            padding: 0.6rem 1rem; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; width: 220px;
+        }
+        .filter-select {
+            padding: 0.6rem 0.8rem; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; background: white;
+        }
+        table {
+            width: 100%; background: white;
+            border-radius: 10px; border-collapse: collapse;
+            overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        th {
+            background: #f9fafb; padding: 0.8rem 1rem;
+            text-align: left; font-size: 13px;
+            color: #6b7280; font-weight: 500;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        td {
+            padding: 0.85rem 1rem; font-size: 14px;
+            border-bottom: 1px solid #f3f4f6; color: #111827;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+        .badge {
+            padding: 0.2rem 0.6rem; border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+        }
+        .badge-pending   { background: #fef9c3; color: #854d0e; }
+        .badge-confirmed { background: #dbeafe; color: #1e40af; }
+        .badge-completed { background: #dcfce7; color: #166534; }
+        .badge-cancelled { background: #fff1f2; color: #dc2626; }
+        .badge-paid      { background: #dcfce7; color: #166534; }
+        .badge-unpaid    { background: #fff1f2; color: #dc2626; }
+        .action-btn {
+            padding: 0.3rem 0.6rem; border-radius: 5px;
+            cursor: pointer; font-size: 11px; margin-right: 3px;
+            border: 1px solid;
+        }
+        .btn-view   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        .btn-pay    { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+        .btn-cancel { background: #fff1f2; color: #dc2626; border-color: #fecdd3; }
+        .btn-delete { background: #f9fafb; color: #374151; border-color: #e5e7eb; }
+        .order-layout {
+            display: grid; grid-template-columns: 1fr 340px;
+            gap: 1.2rem; margin-bottom: 1.5rem;
+        }
+        .panel {
+            background: white; border-radius: 10px;
+            padding: 1.2rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .panel h3 {
+            font-size: 15px; font-weight: 500;
+            margin-bottom: 1rem; color: #111827;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .item-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem; max-height: 320px; overflow-y: auto;
+        }
+        .item-card {
+            border: 1px solid #e5e7eb; border-radius: 8px;
+            padding: 0.7rem; cursor: pointer; transition: border-color 0.15s;
+        }
+        .item-card:hover:not(.out-of-stock) { border-color: #4f46e5; }
+        .item-card.out-of-stock {
+            opacity: 0.5; cursor: not-allowed;
+            border-color: #fecdd3; background: #fff1f2;
+        }
+        .item-card-name { font-size: 13px; font-weight: 500; color: #111827; }
+        .item-card-price { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .cart-item {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13px;
+        }
+        .cart-item:last-child { border-bottom: none; }
+        .cart-item-name { flex: 1; color: #111827; }
+        .cart-qty { display: flex; align-items: center; gap: 0.3rem; }
+        .qty-btn {
+            width: 22px; height: 22px; border-radius: 4px;
+            border: 1px solid #d1d5db; background: white;
+            cursor: pointer; font-size: 14px; line-height: 1;
+        }
+        .cart-subtotal { min-width: 60px; text-align: right; color: #374151; }
+        .remove-btn {
+            background: none; border: none; color: #dc2626;
+            cursor: pointer; font-size: 14px; margin-left: 6px;
+        }
+        .cart-empty {
+            text-align: center; padding: 2rem;
+            color: #9ca3af; font-size: 13px;
+        }
+        .summary-row {
+            display: flex; justify-content: space-between;
+            font-size: 13px; padding: 0.3rem 0; color: #374151;
+        }
+        .summary-row.total {
+            font-weight: 500; font-size: 15px;
+            color: #111827; border-top: 1px solid #e5e7eb;
+            padding-top: 0.6rem; margin-top: 0.4rem;
+        }
+        .form-group { margin-bottom: 0.8rem; }
+        .form-group label {
+            display: block; font-size: 12px;
+            color: #374151; margin-bottom: 0.3rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%; padding: 0.55rem 0.8rem;
+            border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;
+        }
+        .place-order-btn {
+            width: 100%; padding: 0.75rem;
+            background: #4f46e5; color: white;
+            border: none; border-radius: 8px;
+            font-size: 14px; cursor: pointer; margin-top: 0.8rem;
+        }
+        .place-order-btn:hover { background: #4338ca; }
+        .place-order-btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4);
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white; border-radius: 12px;
+            padding: 2rem; width: 480px; max-width: 95%;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal h3 { font-size: 16px; margin-bottom: 1rem; color: #111827; }
+        .modal-actions {
+            display: flex; justify-content: flex-end;
+            gap: 0.6rem; margin-top: 1.2rem;
+        }
+        .close-btn {
+            padding: 0.55rem 1.2rem; background: #4f46e5;
+            color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 14px;
+        }
+        #message {
+            padding: 0.7rem 1rem; border-radius: 6px;
+            margin-bottom: 1rem; font-size: 13px; display: none;
+        }
+        .msg-success { background: #dcfce7; color: #166534; display: block !important; }
+        .msg-error   { background: #fff1f2; color: #dc2626; display: block !important; }
+        .empty-state {
+            text-align: center; padding: 3rem;
+            color: #9ca3af; font-size: 14px;
+        }
+        .section-title {
+            font-size: 15px; font-weight: 500;
+            color: #111827; margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>Ordering System</h1>
+    <div style="display:flex;align-items:center;gap:1rem;">
+        <span id="nav-user"
+              style="font-size:13px;opacity:0.85;color:white"></span>
+        <a href="/dashboard" class="back-btn">← Back to Menu</a>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <div id="message"></div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-label">Total Orders</div>
+            <div class="card-value blue" id="totalOrders">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Completed</div>
+            <div class="card-value green" id="completedOrders">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Pending</div>
+            <div class="card-value amber" id="pendingOrders">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Total Sales</div>
+            <div class="card-value" id="totalSales">₱0.00</div>
+        </div>
+    </div>
+
+    <!-- New Order Panel -->
+    <div class="order-layout">
+
+        <!-- Left: Item picker -->
+        <div class="panel">
+            <h3>Select Items</h3>
+            <input type="text" class="search-input"
+                   style="width:100%;margin-bottom:0.8rem"
+                   placeholder="Search items..."
+                   oninput="filterItems(this.value)"/>
+            <div class="item-grid" id="itemGrid">
+                <div style="color:#9ca3af;font-size:13px">
+                    Loading items...
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Cart + Order Info -->
+        <div class="panel">
+            <h3>Cart</h3>
+            <div id="cartItems">
+                <div class="cart-empty">No items added yet.</div>
+            </div>
+
+            <div style="margin-top:1rem">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotalDisplay">₱0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Discount (₱)</span>
+                    <input type="number" id="discountInput"
+                           value="0" min="0"
+                           style="width:80px;padding:0.2rem 0.4rem;
+                                  border:1px solid #d1d5db;border-radius:4px;
+                                  font-size:13px;text-align:right"
+                           oninput="updateSummary()"/>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="totalDisplay">₱0.00</span>
+                </div>
+            </div>
+
+            <div style="margin-top:1rem">
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="customerName"
+                           placeholder="e.g. Juan Dela Cruz"/>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="paymentMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="E-Wallet">E-Wallet</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="place-order-btn" onclick="placeOrder()">
+                Place Order
+            </button>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="section-title">Order History</div>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <input class="search-input" type="text" id="searchOrder"
+                   placeholder="Search customer..."
+                   oninput="searchOrders()"/>
+            <select class="filter-select" id="statusFilter"
+                    onchange="filterOrders()">
+                <option value="">All Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+            </select>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Order No.</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="orderTableBody">
+            <tr>
+                <td colspan="9" class="empty-state">
+                    Loading orders...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <h3>Order Details</h3>
+        <div id="detailContent"></div>
+        <div class="modal-actions">
+            <button class="close-btn"
+                onclick="document.getElementById('detailModal')
+                .classList.remove('active')">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== AUTH FUNCTIONS =====
+    function parseJwt(token) {
+        try {
+            const base64 = token.split('.')[1];
+            return JSON.parse(atob(base64));
+        } catch(e) { return null; }
+    }
+    function getCurrentUser() {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        return parseJwt(token);
+    }
+    function getUserRole() {
+        const user = getCurrentUser();
+        if (!user) return null;
+        let role = user.role || '';
+        if (Array.isArray(role)) role = role[0];
+        return role.toString().replace('ROLE_', '').toUpperCase().trim();
+    }
+    function doLogout() {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    }
+
+    // ===== CHECK LOGIN =====
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login';
+
+    // Show username in navbar
+    const user = getCurrentUser();
+    const role = getUserRole();
+    if (user) {
+        document.getElementById('nav-user').textContent =
+            user.sub + ' (' + role + ')';
+    }
+
+    // ===== STATE =====
+    let allItems  = [];
+    let allOrders = [];
+    let cart      = [];
+
+    // ===== ON LOAD =====
+    window.onload = async function() {
+        await loadItems();
+        await loadOrders();
+    };
+
+    // ===== LOAD ITEMS =====  ← was missing!
+    async function loadItems() {
+        try {
+            const res = await fetch('/api/items');
+            if (!res.ok) {
+                document.getElementById('itemGrid').innerHTML =
+                    '<div style="color:#dc2626;font-size:13px">' +
+                    'Failed to load items. Status: ' + res.status + '</div>';
+                return;
+            }
+            allItems = await res.json();
+            console.log('Items loaded:', allItems.length);
+            renderItemGrid(allItems);
+        } catch(err) {
+            console.error('Load items error:', err);
+            document.getElementById('itemGrid').innerHTML =
+                '<div style="color:#dc2626;font-size:13px">' +
+                'Error loading items: ' + err.message + '</div>';
+        }
+    }
+
+    // ===== FILTER ITEMS =====
+    function filterItems(q) {
+        const filtered = allItems.filter(i =>
+            i.name.toLowerCase().includes(q.toLowerCase()));
+        renderItemGrid(filtered);
+    }
+
+    // ===== RENDER ITEM GRID =====
+    function renderItemGrid(items) {
+        const grid = document.getElementById('itemGrid');
+        if (!items || items.length === 0) {
+            grid.innerHTML =
+                '<div style="color:#9ca3af;font-size:13px;padding:1rem">' +
+                'No items found. Add items in Item Management first.</div>';
+            return;
+        }
+        grid.innerHTML = items.map(item => {
+            const outOfStock = item.quantity <= 0;
+            return `
+                <div class="item-card ${outOfStock ? 'out-of-stock' : ''}"
+                     onclick="${outOfStock ? 'void(0)' :
+                     'addToCart(' + item.id + ')'}">
+                    <div class="item-card-name">${item.name}</div>
+                    <div class="item-card-price">
+                        ₱${parseFloat(item.price).toFixed(2)}
+                    </div>
+                    <div style="display:flex;justify-content:space-between;
+                                align-items:center;margin-top:4px">
+                        <span style="font-size:11px;background:#f3f4f6;
+                                     color:#374151;padding:2px 6px;
+                                     border-radius:10px">
+                            ${item.category}
+                        </span>
+                        ${outOfStock
+                            ? '<span style="font-size:11px;color:#dc2626;font-weight:500">Out of stock</span>'
+                            : '<span style="font-size:11px;color:#16a34a">Stock: ' + item.quantity + '</span>'
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ===== ADD TO CART =====
+    function addToCart(itemId) {
+        const item = allItems.find(i => i.id === itemId);
+        if (!item) return;
+
+        if (item.quantity <= 0) {
+            showMessage(item.name + ' is out of stock!', 'error');
+            return;
+        }
+
+        const existing  = cart.find(c => c.itemId === itemId);
+        const currentQty = existing ? existing.quantity : 0;
+
+        if (currentQty + 1 > item.quantity) {
+            showMessage('Only ' + item.quantity +
+                ' ' + item.name + ' available!', 'error');
+            return;
+        }
+
+        if (existing) {
+            existing.quantity++;
+        } else {
+            cart.push({
+                itemId:    item.id,
+                itemName:  item.name,
+                itemPrice: item.price,
+                quantity:  1,
+                maxStock:  item.quantity
+            });
+        }
+        renderCart();
+    }
+
+    // ===== CHANGE QTY =====
+    function changeQty(itemId, delta) {
+        const idx  = cart.findIndex(c => c.itemId === itemId);
+        if (idx === -1) return;
+
+        const item   = allItems.find(i => i.id === itemId);
+        const newQty = cart[idx].quantity + delta;
+
+        if (delta > 0 && item && newQty > item.quantity) {
+            showMessage('Only ' + item.quantity +
+                ' ' + item.name + ' in stock!', 'error');
+            return;
+        }
+
+        cart[idx].quantity = newQty;
+        if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+        renderCart();
+    }
+
+    // ===== REMOVE FROM CART =====  ← was missing!
+    function removeFromCart(itemId) {
+        cart = cart.filter(c => c.itemId !== itemId);
+        renderCart();
+    }
+
+    // ===== RENDER CART =====
+    function renderCart() {
+        const div = document.getElementById('cartItems');
+        if (cart.length === 0) {
+            div.innerHTML =
+                '<div class="cart-empty">No items added yet.</div>';
+            updateSummary();
+            return;
+        }
+        div.innerHTML = cart.map(c => `
+            <div class="cart-item">
+                <span class="cart-item-name">${c.itemName}</span>
+                <div class="cart-qty">
+                    <button class="qty-btn"
+                        onclick="changeQty(${c.itemId}, -1)">−</button>
+                    <span>${c.quantity}</span>
+                    <button class="qty-btn"
+                        onclick="changeQty(${c.itemId}, 1)">+</button>
+                </div>
+                <span class="cart-subtotal">
+                    ₱${(c.itemPrice * c.quantity).toFixed(2)}
+                </span>
+                <button class="remove-btn"
+                    onclick="removeFromCart(${c.itemId})">×</button>
+            </div>
+        `).join('');
+        updateSummary();
+    }
+
+    // ===== UPDATE SUMMARY =====
+    function updateSummary() {
+        const subtotal = cart.reduce(
+            (s, c) => s + c.itemPrice * c.quantity, 0);
+        const discount = parseFloat(
+            document.getElementById('discountInput').value) || 0;
+        const total = Math.max(0, subtotal - discount);
+        document.getElementById('subtotalDisplay').textContent =
+            '₱' + subtotal.toFixed(2);
+        document.getElementById('totalDisplay').textContent =
+            '₱' + total.toFixed(2);
+    }
+
+    // ===== PLACE ORDER =====
+    async function placeOrder() {
+        if (cart.length === 0) {
+            showMessage('Please add items to the cart first.', 'error');
+            return;
+        }
+        const customerName =
+            document.getElementById('customerName').value.trim();
+        if (!customerName) {
+            showMessage('Please enter customer name.', 'error');
+            return;
+        }
+
+        const discount = parseFloat(
+            document.getElementById('discountInput').value) || 0;
+
+        const body = {
+            customerName:  customerName,
+            paymentMethod: document.getElementById('paymentMethod').value,
+            discount:      discount,
+            orderItems:    cart.map(c => ({
+                itemName:  c.itemName,
+                itemPrice: c.itemPrice,
+                quantity:  c.quantity,
+                subtotal:  c.itemPrice * c.quantity
+            }))
+        };
+
+        try {
+            const res = await fetch('/api/orders', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                cart = [];
+                renderCart();
+                document.getElementById('customerName').value  = '';
+                document.getElementById('discountInput').value = '0';
+                await loadItems();
+                await loadOrders();
+                showMessage('Order #' + data.orderNumber +
+                    ' placed! Stock updated.', 'success');
+            } else {
+                showMessage(data.message ||
+                    'Failed to place order.', 'error');
+            }
+        } catch(err) {
+            showMessage('Connection error. Please try again.', 'error');
+        }
+    }
+
+    // ===== LOAD ORDERS =====
+    async function loadOrders() {
+        try {
+            const res = await fetch('/api/orders');
+            allOrders = await res.json();
+            renderOrderTable(allOrders);
+            updateOrderSummary(allOrders);
+        } catch(err) {
+            console.error('Load orders error:', err);
+        }
+    }
+
+    // ===== ORDER SUMMARY CARDS =====
+    function updateOrderSummary(orders) {
+        const completed = orders.filter(o => o.status === 'COMPLETED').length;
+        const pending   = orders.filter(o => o.status === 'PENDING').length;
+        const sales     = orders
+            .filter(o => o.status === 'COMPLETED')
+            .reduce((s, o) => s + o.finalAmount, 0);
+        document.getElementById('totalOrders').textContent     = orders.length;
+        document.getElementById('completedOrders').textContent = completed;
+        document.getElementById('pendingOrders').textContent   = pending;
+        document.getElementById('totalSales').textContent      =
+            '₱' + sales.toFixed(2);
+    }
+
+    // ===== RENDER ORDER TABLE =====
+    function renderOrderTable(orders) {
+        const tbody = document.getElementById('orderTableBody');
+        if (orders.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="9" class="empty-state">' +
+                'No orders yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = orders.map((o, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><strong>${o.orderNumber}</strong></td>
+                <td>${o.customerName}</td>
+                <td>${o.orderItems ? o.orderItems.length : 0} item(s)</td>
+                <td>₱${o.finalAmount.toFixed(2)}</td>
+                <td>
+                    <span class="badge badge-${o.paymentStatus.toLowerCase()}">
+                        ${o.paymentStatus}
+                    </span>
+                    <br/>
+                    <small style="color:#6b7280">${o.paymentMethod}</small>
+                </td>
+                <td>
+                    <span class="badge badge-${o.status.toLowerCase()}">
+                        ${o.status}
+                    </span>
+                </td>
+                <td style="font-size:12px;color:#6b7280">
+                    ${new Date(o.orderDate).toLocaleString()}
+                </td>
+                <td>
+                    <button class="action-btn btn-view"
+                        onclick="viewOrder(${o.id})">View</button>
+                    ${o.paymentStatus === 'Unpaid' ?
+                        `<button class="action-btn btn-pay"
+                            onclick="markPaid(${o.id})">Paid</button>` : ''}
+                    ${o.status === 'PENDING' ?
+                        `<button class="action-btn btn-cancel"
+                            onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+                    <button class="action-btn btn-delete"
+                        onclick="deleteOrder(${o.id})">Del</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // ===== SEARCH ORDERS =====
+    async function searchOrders() {
+        const q = document.getElementById('searchOrder').value.trim();
+        if (q === '') { renderOrderTable(allOrders); return; }
+        const res = await fetch('/api/orders/search?name=' +
+            encodeURIComponent(q));
+        renderOrderTable(await res.json());
+    }
+
+    // ===== FILTER ORDERS =====
+    function filterOrders() {
+        const status   = document.getElementById('statusFilter').value;
+        const filtered = status ?
+            allOrders.filter(o => o.status === status) : allOrders;
+        renderOrderTable(filtered);
+    }
+
+    // ===== VIEW ORDER DETAIL =====
+    async function viewOrder(id) {
+        const res = await fetch('/api/orders/' + id);
+        const o   = await res.json();
+        document.getElementById('detailContent').innerHTML = `
+            <div class="summary-row">
+                <span>Order No.</span>
+                <strong>${o.orderNumber}</strong>
+            </div>
+            <div class="summary-row">
+                <span>Customer</span>
+                <span>${o.customerName}</span>
+            </div>
+            <div class="summary-row">
+                <span>Status</span>
+                <span class="badge badge-${o.status.toLowerCase()}">
+                    ${o.status}</span>
+            </div>
+            <div class="summary-row">
+                <span>Payment</span>
+                <span>${o.paymentMethod} —
+                <span class="badge badge-${o.paymentStatus.toLowerCase()}">
+                    ${o.paymentStatus}</span></span>
+            </div>
+            <div class="summary-row">
+                <span>Date</span>
+                <span>${new Date(o.orderDate).toLocaleString()}</span>
+            </div>
+            <hr style="margin:0.8rem 0;border:none;
+                       border-top:1px solid #f3f4f6"/>
+            <strong style="font-size:13px">Items</strong>
+            <div style="margin-top:0.5rem">
+                ${o.orderItems.map(item => `
+                    <div class="summary-row">
+                        <span>${item.itemName} x${item.quantity}</span>
+                        <span>₱${item.subtotal.toFixed(2)}</span>
+                    </div>`).join('')}
+            </div>
+            <hr style="margin:0.8rem 0;border:none;
+                       border-top:1px solid #e5e7eb"/>
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>₱${o.totalAmount.toFixed(2)}</span>
+            </div>
+            <div class="summary-row">
+                <span>Discount</span>
+                <span>−₱${o.discount.toFixed(2)}</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span>₱${o.finalAmount.toFixed(2)}</span>
+            </div>
+        `;
+        document.getElementById('detailModal').classList.add('active');
+    }
+
+    // ===== MARK PAID =====
+    async function markPaid(id) {
+        const res = await fetch('/api/orders/' + id + '/payment', {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ paymentStatus: 'Paid' })
+        });
+        if (res.ok) {
+            await fetch('/api/orders/' + id + '/status', {
+                method:  'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ status: 'COMPLETED' })
+            });
+            loadOrders();
+            showMessage('Order marked as paid and completed!', 'success');
+        }
+    }
+
+    // ===== CANCEL ORDER =====
+    async function cancelOrder(id) {
+        if (!confirm('Cancel this order?')) return;
+        const res = await fetch('/api/orders/' + id + '/status', {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ status: 'CANCELLED' })
+        });
+        if (res.ok) {
+            loadOrders();
+            showMessage('Order cancelled.', 'success');
+        }
+    }
+
+    // ===== DELETE ORDER =====
+    async function deleteOrder(id) {
+        if (!confirm('Delete this order permanently?')) return;
+        const res = await fetch('/api/orders/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            loadOrders();
+            showMessage('Order deleted.', 'success');
+        }
+    }
+
+    // ===== SHOW MESSAGE =====
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className   = type === 'success' ? 'msg-success' : 'msg-error';
+        setTimeout(() => {
+            msg.className   = '';
+            msg.textContent = '';
+        }, 3000);
+    }
+</script>
+
+</body>
+</html>

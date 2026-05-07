@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Labor Management</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f4f4f4; min-height: 100vh; }
+
+        .navbar {
+            background: #4f46e5; color: white;
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 18px; font-weight: 500; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); border: none;
+            color: white; padding: 0.4rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+            text-decoration: none;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* Summary cards */
+        .summary-cards {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .card {
+            background: white; border-radius: 10px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .card-label { font-size: 12px; color: #6b7280; margin-bottom: 0.3rem; }
+        .card-value { font-size: 22px; font-weight: 500; color: #111827; }
+        .card-value.green { color: #16a34a; }
+        .card-value.red   { color: #dc2626; }
+        .card-value.blue  { color: #2563eb; }
+
+        .top-bar {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 1.2rem; gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .top-bar-left { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .search-input {
+            padding: 0.6rem 1rem; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; width: 220px;
+        }
+        .filter-select {
+            padding: 0.6rem 0.8rem; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; background: white;
+        }
+        .add-btn {
+            background: #4f46e5; color: white; border: none;
+            padding: 0.6rem 1.2rem; border-radius: 6px;
+            cursor: pointer; font-size: 14px;
+        }
+        .add-btn:hover { background: #4338ca; }
+
+        table {
+            width: 100%; background: white;
+            border-radius: 10px; border-collapse: collapse;
+            overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        th {
+            background: #f9fafb; padding: 0.8rem 1rem;
+            text-align: left; font-size: 13px;
+            color: #6b7280; font-weight: 500;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        td {
+            padding: 0.85rem 1rem; font-size: 14px;
+            border-bottom: 1px solid #f3f4f6; color: #111827;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .badge {
+            padding: 0.2rem 0.6rem; border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+        }
+        .badge-admin    { background: #ede9fe; color: #5b21b6; }
+        .badge-cashier  { background: #dbeafe; color: #1e40af; }
+        .badge-staff    { background: #f3f4f6; color: #374151; }
+        .badge-active   { background: #dcfce7; color: #166534; }
+        .badge-inactive { background: #fff1f2; color: #dc2626; }
+        .badge-morning  { background: #fef9c3; color: #854d0e; }
+        .badge-afternoon{ background: #ffedd5; color: #9a3412; }
+        .badge-evening  { background: #ede9fe; color: #5b21b6; }
+
+        .edit-btn {
+            background: #f0fdf4; color: #16a34a;
+            border: 1px solid #bbf7d0; padding: 0.3rem 0.7rem;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+            margin-right: 4px;
+        }
+        .del-btn {
+            background: #fff1f2; color: #dc2626;
+            border: 1px solid #fecdd3; padding: 0.3rem 0.7rem;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4);
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white; border-radius: 12px;
+            padding: 2rem; width: 480px; max-width: 95%;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal h3 { font-size: 16px; margin-bottom: 1.2rem; color: #111827; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block; font-size: 13px;
+            color: #374151; margin-bottom: 0.3rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%; padding: 0.6rem 0.8rem;
+            border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
+        }
+        .modal-actions {
+            display: flex; justify-content: flex-end;
+            gap: 0.6rem; margin-top: 1.2rem;
+        }
+        .cancel-btn {
+            padding: 0.55rem 1rem; border: 1px solid #d1d5db;
+            border-radius: 6px; background: white;
+            cursor: pointer; font-size: 14px;
+        }
+        .save-btn {
+            padding: 0.55rem 1.2rem; background: #4f46e5;
+            color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 14px;
+        }
+        .save-btn:hover { background: #4338ca; }
+
+        #message {
+            padding: 0.7rem 1rem; border-radius: 6px;
+            margin-bottom: 1rem; font-size: 13px; display: none;
+        }
+        .msg-success { background: #dcfce7; color: #166534; display: block !important; }
+        .msg-error   { background: #fff1f2; color: #dc2626; display: block !important; }
+        .empty-state {
+            text-align: center; padding: 3rem;
+            color: #9ca3af; font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>Labor Management</h1>
+    <a href="/dashboard" class="back-btn">← Back to Menu</a>
+</div>
+
+<div class="container">
+
+    <div id="message"></div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-label">Total Staff</div>
+            <div class="card-value blue" id="totalStaff">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Active</div>
+            <div class="card-value green" id="activeStaff">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Inactive</div>
+            <div class="card-value red" id="inactiveStaff">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Total Payroll</div>
+            <div class="card-value" id="totalPayroll">₱0.00</div>
+        </div>
+    </div>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <input class="search-input" type="text" id="searchInput"
+                   placeholder="Search staff name..." oninput="searchStaff()"/>
+            <select class="filter-select" id="roleFilter" onchange="filterStaff()">
+                <option value="">All Roles</option>
+                <option value="ADMIN">Admin</option>
+                <option value="CASHIER">Cashier</option>
+                <option value="STAFF">Staff</option>
+            </select>
+            <select class="filter-select" id="statusFilter" onchange="filterStaff()">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+        <button class="add-btn" onclick="openAddModal()">+ Add Staff</button>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>Shift</th>
+                <th>Status</th>
+                <th>Phone</th>
+                <th>Salary</th>
+                <th>Hire Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="staffTableBody">
+            <tr><td colspan="9" class="empty-state">Loading staff...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3 id="modalTitle">Add Staff</h3>
+        <input type="hidden" id="staffId"/>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="staffFullName" placeholder="e.g. Juan Dela Cruz"/>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="staffEmail" placeholder="email@example.com"/>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="staffPhone" placeholder="09xxxxxxxxx"/>
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="staffRole">
+                    <option value="ADMIN">Admin</option>
+                    <option value="CASHIER">Cashier</option>
+                    <option value="STAFF">Staff</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Shift</label>
+                <select id="staffShift">
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
+                    <option value="Evening">Evening</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="staffStatus">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Salary (₱)</label>
+                <input type="number" id="staffSalary" placeholder="0.00" step="0.01"/>
+            </div>
+            <div class="form-group">
+                <label>Hire Date</label>
+                <input type="date" id="staffHireDate"/>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+            <button class="save-btn" onclick="saveStaff()">Save Staff</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login';
+
+    let allStaff = [];
+
+    window.onload = () => loadStaff();
+
+    async function loadStaff() {
+        const res = await fetch('/api/staff');
+        allStaff = await res.json();
+        renderTable(allStaff);
+        updateSummary(allStaff);
+    }
+
+    function updateSummary(staff) {
+        const active = staff.filter(s => s.status === 'Active').length;
+        const inactive = staff.filter(s => s.status === 'Inactive').length;
+        const payroll = staff
+            .filter(s => s.status === 'Active')
+            .reduce((sum, s) => sum + s.salary, 0);
+
+        document.getElementById('totalStaff').textContent = staff.length;
+        document.getElementById('activeStaff').textContent = active;
+        document.getElementById('inactiveStaff').textContent = inactive;
+        document.getElementById('totalPayroll').textContent = '₱' + payroll.toFixed(2);
+    }
+
+    function renderTable(staff) {
+        const tbody = document.getElementById('staffTableBody');
+        if (staff.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No staff found.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = staff.map((s, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${s.fullName}</td>
+                <td><span class="badge badge-${s.role.toLowerCase()}">${s.role}</span></td>
+                <td><span class="badge badge-${s.shift.toLowerCase()}">${s.shift}</span></td>
+                <td><span class="badge badge-${s.status.toLowerCase()}">${s.status}</span></td>
+                <td>${s.phone}</td>
+                <td>₱${s.salary.toFixed(2)}</td>
+                <td>${s.hireDate}</td>
+                <td>
+                    <button class="edit-btn" onclick="openEditModal(${s.id})">Edit</button>
+                    <button class="del-btn" onclick="deleteStaff(${s.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function searchStaff() {
+        const q = document.getElementById('searchInput').value.trim();
+        if (q === '') { renderTable(allStaff); return; }
+        const res = await fetch('/api/staff/search?name=' + encodeURIComponent(q));
+        const staff = await res.json();
+        renderTable(staff);
+    }
+
+    function filterStaff() {
+        const role = document.getElementById('roleFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        let filtered = allStaff;
+        if (role) filtered = filtered.filter(s => s.role === role);
+        if (status) filtered = filtered.filter(s => s.status === status);
+        renderTable(filtered);
+    }
+
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Add Staff';
+        document.getElementById('staffId').value = '';
+        document.getElementById('staffFullName').value = '';
+        document.getElementById('staffEmail').value = '';
+        document.getElementById('staffPhone').value = '';
+        document.getElementById('staffRole').value = 'STAFF';
+        document.getElementById('staffShift').value = 'Morning';
+        document.getElementById('staffStatus').value = 'Active';
+        document.getElementById('staffSalary').value = '';
+        document.getElementById('staffHireDate').value = '';
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    async function openEditModal(id) {
+        const res = await fetch('/api/staff/' + id);
+        const s = await res.json();
+        document.getElementById('modalTitle').textContent = 'Edit Staff';
+        document.getElementById('staffId').value = s.id;
+        document.getElementById('staffFullName').value = s.fullName;
+        document.getElementById('staffEmail').value = s.email;
+        document.getElementById('staffPhone').value = s.phone;
+        document.getElementById('staffRole').value = s.role;
+        document.getElementById('staffShift').value = s.shift;
+        document.getElementById('staffStatus').value = s.status;
+        document.getElementById('staffSalary').value = s.salary;
+        document.getElementById('staffHireDate').value = s.hireDate;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    async function saveStaff() {
+        const id = document.getElementById('staffId').value;
+        const body = {
+            fullName: document.getElementById('staffFullName').value,
+            email: document.getElementById('staffEmail').value,
+            phone: document.getElementById('staffPhone').value,
+            role: document.getElementById('staffRole').value,
+            shift: document.getElementById('staffShift').value,
+            status: document.getElementById('staffStatus').value,
+            salary: parseFloat(document.getElementById('staffSalary').value),
+            hireDate: document.getElementById('staffHireDate').value
+        };
+
+        const isEdit = id !== '';
+        const url = isEdit ? '/api/staff/' + id : '/api/staff';
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            closeModal();
+            loadStaff();
+            showMessage(isEdit ? 'Staff updated successfully!' : 'Staff added successfully!', 'success');
+        } else {
+            showMessage('Something went wrong. Please try again.', 'error');
+        }
+    }
+
+    async function deleteStaff(id) {
+        if (!confirm('Are you sure you want to delete this staff member?')) return;
+        const res = await fetch('/api/staff/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            loadStaff();
+            showMessage('Staff deleted successfully!', 'success');
+        } else {
+            showMessage('Failed to delete staff.', 'error');
+        }
+    }
+
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.textContent = text;
+        msg.className = type === 'success' ? 'msg-success' : 'msg-error';
+        setTimeout(() => { msg.className = ''; msg.textContent = ''; }, 3000);
+    }
+</script>
+
+</body>
+</html>
